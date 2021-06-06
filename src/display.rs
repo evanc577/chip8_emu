@@ -1,9 +1,8 @@
+use crate::cpu::{PixelState, DISPLAY_H, DISPLAY_W};
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
-use sdl2::render::{Canvas, Texture, TextureCreator};
-use sdl2::video::{Window, WindowContext};
-
-use crate::cpu::{PixelState, DISPLAY_H, DISPLAY_W};
+use sdl2::render::Canvas;
+use sdl2::video::Window;
 
 const PIXEL_SIZE: usize = 20;
 
@@ -13,6 +12,8 @@ pub struct DisplayWindow {
 
 impl DisplayWindow {
     pub fn new(context: &sdl2::Sdl) -> Self {
+        sdl2::hint::set("SDL_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR", "0");
+
         let video_subsystem = context.video().unwrap();
         let window = video_subsystem
             .window(

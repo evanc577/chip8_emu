@@ -17,15 +17,17 @@ fn main() {
     let mut display = display::DisplayWindow::new(&sdl_context);
     let mut input = input::Input::new(&sdl_context);
 
+    let mut halted = false;
     while let Ok(_) = input.poll() {
-        let output = cpu.cycle();
-        match output.state {
-            CPUState::Running => (),
-            CPUState::RunningDraw => display.draw(output.gfx),
-            CPUState::Halt => {
-                eprintln!("CPU Halt");
-                std::thread::sleep(std::time::Duration::from_secs(10));
-                break;
+        if !halted {
+            let output = cpu.cycle();
+            match output.state {
+                CPUState::Running => (),
+                CPUState::RunningDraw => display.draw(output.gfx),
+                CPUState::Halt => {
+                    eprintln!("CPU Halt");
+                    halted = true;
+                }
             }
         }
         std::thread::sleep(std::time::Duration::from_millis(10));
