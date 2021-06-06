@@ -7,7 +7,7 @@ const MEM_SIZE: usize = 0x1000;
 const GFX_SIZE: usize = DISPLAY_W * DISPLAY_H;
 const REG_V_SIZE: usize = 0x10;
 const STACK_SIZE: usize = 0x10;
-const KEY_SIZE: usize = 0x10;
+pub const KEY_SIZE: usize = 0x10;
 
 const PROGRAM_OFFSET: usize = 0x200; // Program load address
 
@@ -40,8 +40,8 @@ pub enum CPUState {
     Halt,
 }
 
-#[derive(Clone, Copy, PartialEq)]
-enum KeyState {
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum KeyState {
     Pressed,
     NotPressed,
 }
@@ -53,9 +53,16 @@ pub enum PixelState {
 }
 
 #[derive(Clone, Copy)]
+pub struct CycleInput {
+    pub keys: [KeyState; KEY_SIZE],
+    pub decrement_timer: bool,
+}
+
+#[derive(Clone, Copy)]
 pub struct CycleOutput<'a> {
     pub state: CPUState,
     pub gfx: &'a [PixelState; GFX_SIZE],
+    pub beep: bool,
 }
 
 #[allow(non_snake_case)]
@@ -78,7 +85,7 @@ pub struct CPU {
     SP: usize, // Stack pointer
 
     // input
-    key: [KeyState; KEY_SIZE],
+    // key: [KeyState; KEY_SIZE],
 
     // state
     state: CPUState,
@@ -97,7 +104,6 @@ impl CPU {
             sound_timer: 0,
             stack: [0; STACK_SIZE],
             SP: 0,
-            key: [KeyState::NotPressed; KEY_SIZE],
             state: CPUState::Running,
         };
 
@@ -110,14 +116,14 @@ impl CPU {
         cpu
     }
 
-    pub fn cycle(&mut self) -> CycleOutput {
+    pub fn cycle(&mut self, input: &CycleInput) -> CycleOutput {
         self.state = CPUState::Running;
         self.prev_PC = self.PC;
 
         // Fetch
         let instruction = u16::from(self.mem[self.PC]) << 8 | u16::from(self.mem[self.PC + 1]);
         self.PC += 2;
-        eprintln!("FETCH 0x{:04x}", instruction);
+        // eprintln!("FETCH 0x{:04x}", instruction);
 
         // Decode
         let opcode = instruction >> 12;
@@ -138,27 +144,30 @@ impl CPU {
             0xB => self.opcode_b(instruction),
             0xC => self.opcode_c(instruction),
             0xD => self.opcode_d(instruction),
-            0xE => self.opcode_e(instruction),
-            0xF => self.opcode_f(instruction),
+            0xE => self.opcode_e(instruction, &input.keys),
+            0xF => self.opcode_f(instruction, &input.keys),
             _ => panic!("Unknown instruction 0x{:04x}", instruction),
         };
 
         // Update timers
-        if self.delay_timer > 0 {
-            self.delay_timer -= 1;
-        }
-        if self.sound_timer > 0 {
-            self.sound_timer -= 1;
+        if input.decrement_timer {
+            if self.delay_timer > 0 {
+                self.delay_timer -= 1;
+            }
+            if self.sound_timer > 0 {
+                self.sound_timer -= 1;
+            }
         }
 
         // Halt if infinite loop is detected
         if self.PC == self.prev_PC {
-            self.state = CPUState::Halt
+            // self.state = CPUState::Halt
         }
 
         CycleOutput {
             state: self.state,
             gfx: &self.gfx,
+            beep: self.sound_timer != 0,
         }
     }
 
@@ -168,7 +177,7 @@ impl CPU {
             0x00E0 => {
                 self.gfx.iter_mut().for_each(|b| *b = PixelState::Off);
                 self.state = CPUState::RunningDraw;
-            },
+            }
 
             // Return from subroutine
             0x00EE => {
@@ -254,26 +263,26 @@ impl CPU {
 
             // add VY to VX, VF set to 1 if carry, otherwise set to 0
             0x4 => {
-                let sum = self.V[x].wrapping_add(self.V[y]);
-                if sum < self.V[x] {
+                let temp_vx = self.V[x];
+                self.V[x] = self.V[x].wrapping_add(self.V[y]);
+                if self.V[x] < temp_vx {
                     // carry
                     self.V[0xF] = 1;
                 } else {
                     self.V[0xF] = 0;
                 }
-                self.V[x] = sum;
             }
 
             // subtract VY from VX, VF set to 1 if borrow, otherwise set to 0
             0x5 => {
-                let diff = self.V[x].wrapping_sub(self.V[y]);
-                if diff > self.V[x] {
+                let temp_vx = self.V[x];
+                self.V[x] = self.V[x].wrapping_sub(self.V[y]);
+                if self.V[x] > temp_vx {
                     // borrow
                     self.V[0xF] = 0;
                 } else {
                     self.V[0xF] = 1;
                 }
-                self.V[x] = diff;
             }
 
             // (undocumented) stores LSB of VX in VF, then right shifts VX by 1
@@ -284,14 +293,13 @@ impl CPU {
 
             // (undocumented) sets VX to (VY - VX), VF set to 1 if borrow, otherwise set to 0
             0x7 => {
-                let diff = self.V[y].wrapping_sub(self.V[x]);
-                if diff > self.V[y] {
+                self.V[x] = self.V[y].wrapping_sub(self.V[x]);
+                if self.V[x] > self.V[y] {
                     // borrow
                     self.V[0xF] = 0;
                 } else {
                     self.V[0xF] = 1;
                 }
-                self.V[x] = diff;
             }
 
             // (undocumented) stores MSB of VX in VF, then left shifts VX by 1
@@ -343,11 +351,11 @@ impl CPU {
     /// flipped from set to unset when the sprite is drawn, and to 0 if that
     /// does not happen
     fn opcode_d(&mut self, instruction: u16) {
-        let x = get_X::<usize>(instruction) % DISPLAY_W;
-        let y = get_Y::<usize>(instruction) % DISPLAY_H;
+        let x = get_X::<usize>(instruction);
+        let y = get_Y::<usize>(instruction);
         let n = (instruction & 0xF) as usize;
-        let vx = usize::from(self.V[x]);
-        let vy = usize::from(self.V[y]);
+        let vx = usize::from(self.V[x]) % DISPLAY_W;
+        let vy = usize::from(self.V[y]) % DISPLAY_H;
 
         self.V[0xF] = 0;
 
@@ -374,19 +382,19 @@ impl CPU {
 
     /// EX--
     /// Input processing
-    fn opcode_e(&mut self, instruction: u16) {
+    fn opcode_e(&mut self, instruction: u16, keys: &[KeyState; KEY_SIZE]) {
         let x: usize = get_X(instruction);
         match instruction & 0x00FF {
             // Skips next instruction if the key stored in VX is pressed
             0x9E => {
-                if self.key[usize::from(self.V[x])] == KeyState::Pressed {
+                if keys[usize::from(self.V[x])] == KeyState::Pressed {
                     self.PC += 2;
                 }
             }
 
             // Skips next instruction if the key stored in VX is not pressed
             0xA1 => {
-                if self.key[usize::from(self.V[x])] == KeyState::NotPressed {
+                if keys[usize::from(self.V[x])] == KeyState::NotPressed {
                     self.PC += 2;
                 }
             }
@@ -397,7 +405,7 @@ impl CPU {
 
     /// FX--
     /// Misc
-    fn opcode_f(&mut self, instruction: u16) {
+    fn opcode_f(&mut self, instruction: u16, keys: &[KeyState; KEY_SIZE]) {
         let x: usize = get_X(instruction);
         match instruction & 0x00FF {
             // Set VX to the value of the delay timer
@@ -406,7 +414,18 @@ impl CPU {
             // A key press is awaited, and then stored in VX.
             // (Blocking Operation. All instruction halted until next key event)
             0x0A => {
-                // TODO
+                if let Some(offset) = keys
+                    .iter()
+                    .enumerate()
+                    .find_map(|(offset, key)| match *key {
+                        KeyState::Pressed => Some(offset),
+                        KeyState::NotPressed => None,
+                    })
+                {
+                    self.V[x] = offset as u8;
+                } else {
+                    self.PC -= 2;
+                }
             }
 
             // Set the delay timer to VX
@@ -433,7 +452,7 @@ impl CPU {
 
             // Stores V0 to VX (including VX) in memory starting at address I
             0x55 => {
-                for (offset, reg_val) in self.V[0..usize::from(x) + 1].iter().enumerate() {
+                for (offset, reg_val) in self.V[0..=usize::from(x)].iter().enumerate() {
                     self.mem[self.I + offset] = *reg_val;
                 }
             }
@@ -441,7 +460,7 @@ impl CPU {
             // Fills V0 to VX (including VX) with values from memory starting at
             // address I
             0x65 => {
-                for (offset, mem_val) in self.mem[self.I..self.I + usize::from(x) + 1]
+                for (offset, mem_val) in self.mem[self.I..=(self.I + usize::from(x))]
                     .iter()
                     .enumerate()
                 {

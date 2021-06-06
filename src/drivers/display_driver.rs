@@ -6,11 +6,11 @@ use sdl2::video::Window;
 
 const PIXEL_SIZE: usize = 20;
 
-pub struct DisplayWindow {
+pub struct DisplayDriver {
     canvas: Canvas<Window>,
 }
 
-impl DisplayWindow {
+impl DisplayDriver {
     pub fn new(context: &sdl2::Sdl) -> Self {
         sdl2::hint::set("SDL_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR", "0");
 
@@ -22,11 +22,16 @@ impl DisplayWindow {
                 (PIXEL_SIZE * DISPLAY_H) as u32,
             )
             .position_centered()
-            // .opengl()
+            .vulkan()
             .build()
             .unwrap();
 
-        let mut canvas = window.into_canvas().build().unwrap();
+        let mut canvas = window
+            .into_canvas()
+            .accelerated()
+            .present_vsync()
+            .build()
+            .unwrap();
 
         canvas.set_draw_color(Color::RGB(0, 0, 0));
         canvas.clear();
