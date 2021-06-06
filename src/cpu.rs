@@ -117,7 +117,7 @@ impl CPU {
         // Fetch
         let instruction = u16::from(self.mem[self.PC]) << 8 | u16::from(self.mem[self.PC + 1]);
         self.PC += 2;
-        eprintln!("fetch instruction 0x{:04x}", instruction);
+        eprintln!("FETCH 0x{:04x}", instruction);
 
         // Decode
         let opcode = instruction >> 12;
@@ -140,7 +140,7 @@ impl CPU {
             0xD => self.opcode_d(instruction),
             0xE => self.opcode_e(instruction),
             0xF => self.opcode_f(instruction),
-            _ => panic!("Unknown instruction {:04x}", instruction),
+            _ => panic!("Unknown instruction 0x{:04x}", instruction),
         };
 
         // Update timers
@@ -176,7 +176,7 @@ impl CPU {
                 self.SP -= 1;
             }
 
-            _ => panic!("Unknown instruction {:04x}", instruction),
+            _ => panic!("Unknown instruction 0x{:04x}", instruction),
         }
     }
 
@@ -300,7 +300,7 @@ impl CPU {
                 self.V[x] <<= 1;
             }
 
-            _ => panic!("Unknown instruction {:04x}", instruction),
+            _ => panic!("Unknown instruction 0x{:04x}", instruction),
         }
     }
 
@@ -391,7 +391,7 @@ impl CPU {
                 }
             }
 
-            _ => panic!("Unknown instruction {:04x}", instruction),
+            _ => panic!("Unknown instruction 0x{:04x}", instruction),
         }
     }
 
@@ -449,7 +449,7 @@ impl CPU {
                 }
             }
 
-            _ => panic!("Unknown instruction {:04x}", instruction),
+            _ => panic!("Unknown instruction 0x{:04x}", instruction),
         }
     }
 }

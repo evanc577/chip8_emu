@@ -5,7 +5,9 @@ mod cpu;
 mod display;
 mod input;
 
-const CYCLES_PER_SEC: usize = 700;
+const INSTR_PER_SEC: u64 = 700;
+const SECS_PER_INSTR: f64 = 1.0 / INSTR_PER_SEC as f64;
+const NS_PER_INSTR: u64 = (SECS_PER_INSTR * 1_000_000_000.0) as u64;
 
 fn main() {
     let args: Vec<_> = env::args_os().collect();
@@ -30,6 +32,6 @@ fn main() {
                 }
             }
         }
-        std::thread::sleep(std::time::Duration::from_millis(10));
+        std::thread::sleep(std::time::Duration::from_nanos(NS_PER_INSTR));
     }
 }
