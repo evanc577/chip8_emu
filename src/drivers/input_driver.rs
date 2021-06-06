@@ -1,10 +1,14 @@
 use crate::cpu::{KeyState, KEY_SIZE};
+use clap::arg_enum;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 
-enum KeyMapping {
-    Literal,
-    QWERTY,
+arg_enum! {
+    #[derive(PartialEq)]
+    pub enum KeyMapping {
+        Literal,
+        QWERTY,
+    }
 }
 
 const MAPPING: KeyMapping = KeyMapping::QWERTY;
@@ -25,7 +29,8 @@ impl InputDriver {
             match event {
                 Event::Quit { .. } => return Err(()),
                 Event::KeyDown {
-                    keycode: Some(Keycode::Escape), ..
+                    keycode: Some(Keycode::Escape),
+                    ..
                 } => return Err(()),
                 _ => (),
             }

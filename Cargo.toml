@@ -1,5 +1,6 @@
 [package]
 name = "chip8_emu"
+description = "A Chip-8 interpreter"
 version = "0.1.0"
 authors = ["Evan Chang <evanc577@gmail.com>"]
 edition = "2018"
@@ -7,6 +8,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+clap = "2.33"
 crossbeam = "0.8"
 rand = "0.8"
 sdl2 = "0.34"

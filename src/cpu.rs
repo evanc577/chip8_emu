@@ -37,7 +37,6 @@ const FONTSET: [u8; FONTSET_SIZE] = [
 pub enum CPUState {
     Running,
     RunningDraw,
-    Halt,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -157,11 +156,6 @@ impl CPU {
             if self.sound_timer > 0 {
                 self.sound_timer -= 1;
             }
-        }
-
-        // Halt if infinite loop is detected
-        if self.PC == self.prev_PC {
-            // self.state = CPUState::Halt
         }
 
         CycleOutput {
