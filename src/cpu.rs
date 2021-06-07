@@ -39,13 +39,13 @@ pub enum CPUState {
     RunningDraw,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum KeyState {
     Pressed,
     NotPressed,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum PixelState {
     On,
     Off,

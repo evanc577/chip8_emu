@@ -28,11 +28,12 @@ impl AudioDriver {
         AudioDriver { device }
     }
 
-    pub fn start_beep(&self) {
-        self.device.resume();
-    }
-    pub fn stop_beep(&self) {
-        self.device.pause();
+    pub fn beep(&self, beep: bool) {
+        if beep {
+            self.device.resume();
+        } else {
+            self.device.pause();
+        }
     }
 }
 
