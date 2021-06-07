@@ -83,9 +83,6 @@ pub struct CPU {
     stack: [usize; STACK_SIZE],
     SP: usize, // Stack pointer
 
-    // input
-    // key: [KeyState; KEY_SIZE],
-
     // state
     state: CPUState,
 }

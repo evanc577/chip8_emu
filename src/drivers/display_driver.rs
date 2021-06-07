@@ -5,6 +5,7 @@ use sdl2::render::Canvas;
 use sdl2::video::Window;
 
 const PIXEL_SIZE: usize = 20;
+const TITLE_PREFIX: &str = "CHIP-8";
 
 pub struct DisplayDriver {
     canvas: Canvas<Window>,
@@ -17,7 +18,7 @@ impl DisplayDriver {
         let video_subsystem = context.video().unwrap();
         let window = video_subsystem
             .window(
-                "CHIP-8",
+                TITLE_PREFIX,
                 (PIXEL_SIZE * DISPLAY_W) as u32,
                 (PIXEL_SIZE * DISPLAY_H) as u32,
             )
@@ -40,7 +41,7 @@ impl DisplayDriver {
         Self { canvas }
     }
 
-    pub fn draw(&mut self, gfx: &[PixelState]) {
+    pub fn draw(&mut self, gfx: &[PixelState], perf: Option<usize>) {
         for y in 0..DISPLAY_H {
             for x in 0..DISPLAY_W {
                 let offset = y * DISPLAY_W + x;
@@ -59,6 +60,13 @@ impl DisplayDriver {
                     PIXEL_SIZE as u32,
                 ));
             }
+        }
+
+        if let Some(perf) = perf {
+            let _ = self
+                .canvas
+                .window_mut()
+                .set_title(format!("{} | IPS: {}", TITLE_PREFIX, perf).as_str());
         }
 
         self.canvas.present();
