@@ -9,8 +9,8 @@ mod drivers;
 // 60Hz Chip-8 timers
 const CH8_TIMER_DURATION: std::time::Duration = std::time::Duration::from_nanos(16_666_666);
 
-// Limit window refresh rate to 200Hz
-const DRAW_TIMER_DURATION: std::time::Duration = std::time::Duration::from_millis(5);
+// Limit window refresh rate to 100Hz
+const DRAW_TIMER_DURATION: std::time::Duration = std::time::Duration::from_millis(10);
 
 // Performance monitoring timers
 const PERF_TIMER_DURATION: std::time::Duration = std::time::Duration::from_secs(1);
@@ -70,8 +70,9 @@ fn main() {
         perf_counter += 1;
         let perf = match perf_ticker.try_recv() {
             Ok(_) => {
+                let temp = perf_counter;
                 perf_counter = 0;
-                Some(perf_counter)
+                Some(temp)
             },
             Err(_) => None,
         };
